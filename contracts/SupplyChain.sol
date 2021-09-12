@@ -63,9 +63,9 @@ contract SupplyChain {
   modifier checkValue (uint _sku)  {
     //refund them after pay for item (why it is before, _ checks for logic before func)
     _;
-    uint _price = items[_sku].price;
-    uint amountToRefund = msg.value - _price;
-    items[_sku].buyer.transfer(amountToRefund);
+    if (address(this).balance > 0) {
+      items[_sku].buyer.transfer(address(this).balance);
+    }
   }
 
   // For each of the following modifiers, use what you learned about modifiers
@@ -118,8 +118,8 @@ contract SupplyChain {
       buyer: address(0)
     });
     
-    skuCount = skuCount + 1;
     emit LogForSale(skuCount);
+    skuCount = skuCount + 1;
     return true;
   }
 
@@ -135,10 +135,11 @@ contract SupplyChain {
   //      sure the buyer is refunded any excess ether sent. 
   // 6. call the event associated with this function!
   function buyItem(uint sku) public payable 
-  forSale(sku) paidEnough(items[sku].price) checkValue(sku)
+  forSale(sku) 
+  paidEnough(items[sku].price) 
+  checkValue(sku)
   {
-    address payable seller = items[sku].seller;
-    seller.transfer(msg.value);
+    items[sku].seller.transfer(items[sku].price);
     items[sku].buyer = msg.sender;
     items[sku].state = State.Sold;
     emit LogSold(sku);
@@ -170,7 +171,7 @@ contract SupplyChain {
 
   // Uncomment the following code block. it is needed to run tests
   function fetchItem(uint _sku) public view 
-    returns (string memory name, uint sku, uint price, uint state, address payable seller, address payable buyer) 
+    returns (string memory name, uint sku, uint price, uint state, address seller, address buyer) 
   {
     name = items[_sku].name;
     sku = items[_sku].sku;
